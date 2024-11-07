@@ -21,8 +21,8 @@ dc_offset = np.mean(raw_s)
 
 s = raw_s - dc_offset
 
-ft = np.fft.fft(s)
-ft = ft[:n // 2]
+complex_ft = np.fft.fft(s)
+ft = complex_ft[:n // 2]
 ft = np.abs(ft / n)
 
 f = fs * np.linspace(0, n / 2, n // 2) / n
@@ -70,9 +70,7 @@ sorted_f = f[sorted_indices]
 top_4_ft = sorted_ft[:4]
 top_4_f = sorted_f[:4]
 
-top_4_f_ore = []
-for i in top_4_f:
-    top_4_f_ore.append(1/i)
+top_4_f_ore = [1 / freq for freq in top_4_f]
 
 print(top_4_ft) # [66.85385766 35.21917298 27.10202229 25.21991648] -> cele mai mari module ale transformatei
 print(top_4_f) # [5.46866455e-05 1.09373291e-04 4.16712239e-02 1.64059937e-04] -> frecventele lor (in ore^(-1))
@@ -100,3 +98,45 @@ plt.tight_layout()
 plt.grid()
 plt.savefig('../plots/g.pdf')
 plt.savefig('../plots/g.png')
+plt.clf()
+
+# h)
+'''
+In prima instanta, am putea studia comportamentul semnalului la frecvente de 24 de ore pentru a-l putea localiza in ore ale zilei. De exemplu, traficul mai scazut noaptea si mai ridicat in anumite ore de varf ale zilei.
+Apoi putem deduce din frecventele saptamanale zilele saptamanii. La fel, traficul mai scazut in weekend si mai aglomerat in timpul saptamanii.
+In mod similar, se poate proceda cu frecvente pe perioade mai extinse, cum ar fi cateva luni pentru a putea localiza semnalul intr-un an. Speram, astfel, sa existe un anumit tipar pentru sarbatori / anotimpuri.
+In ultima instanta, putem incerca sa observam cresterea numarului de masini pentru a-l putea plasa efectiv intre anumiti ani. 
+
+Probabil ca cea mai mare limitare pe care o are aceasta metoda e ca nu se cunoaste exact locul de unde a fost extras semnalul. Asta nu afecteaza atat de mult comportamentul zilnic sau saptamanal, dar devine o problema cand incercam sa facem deduceri pe perioade mai mari care depind de anotimpuri/sarbatori specifice unor anumite zone. 
+'''
+
+# i) nu ma intereseaza un comportament al semnalului pe o perioada mai scurta decat cea zilnica => 
+# consider zgomot frecventele mai inalte decat cea pe 24 de ore gasita la subpunctul g) si le elimin
+t = np.arange(0, len(s))
+
+plt.plot(t, s)
+plt.title('Semnalul nefiltrat')
+plt.xlabel('timp(ore)')
+plt.ylabel('numar masini')
+plt.grid()
+plt.tight_layout()
+plt.savefig('../plots/semnal_nefiltrat.pdf')
+plt.savefig('../plots/semnal_nefiltrat.png')
+plt.clf()
+
+# index = np.where(f == top_4_f[2])[0][0]
+# ft_filtered = np.copy(ft)
+# ft_filtered[index:] = 0
+#
+# ft_full = np.concatenate((ft_filtered, np.conj(ft_filtered[::-1]))) / n
+# s_filtered = np.fft.ifft(ft_full).real
+# plt.plot(t, s_filtered)
+# plt.title('Semnalul filtrat')
+# plt.xlabel('timp(ore)')
+# plt.ylabel('numar masini')
+# plt.grid()
+# plt.tight_layout()
+# plt.show()
+# plt.savefig('../plots/semnal_nefiltrat.pdf')
+# plt.savefig('../plots/semnal_nefiltrat.png')
+#plt.clf()
