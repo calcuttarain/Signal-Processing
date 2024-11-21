@@ -1,10 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import requests
 
 fig, axs = plt.subplots(2, 2, figsize=(16, 9))
 
+response = requests.get("https://qrng.anu.edu.au/API/jsonI.php?length=100&type=uint8")
+
 t = np.arange(100)
-x = np.random.rand(100)
+x = response.json()['data'] 
 n = 0
 for i in range(2):
     for j in range(2):
