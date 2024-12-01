@@ -10,7 +10,6 @@ def save_plot(time, signal, title, filename):
     plt.savefig('../plots/' + filename + '.pdf')
     plt.clf()
 
-
 def autocorrelation(signal):
     autocorrelation = []
     N = len(signal)
@@ -26,7 +25,24 @@ def ar_model(signal, m, p):
     x = np.linalg.inv(Y.T @ Y) @ Y.T @ y
 
     return x
+
+def predict(signal, m, p):
+    x_star = ar_model(signal, m, p)
+    prediction = x_star.T @ signal[-p:]
+
+    return prediction
    
+def best_m_p_prediction(signal, m, p):
+    start = m + p 
+    predictions = []
+
+    for i in range (start, len(signal)):
+        prediction = predict(signal[:i], m, p)
+        predictions.append(prediction)
+
+    return predictions
+
+
 
 # a)
 polinom = {'a': 3, 'b': 5, 'c': 4}
@@ -64,10 +80,10 @@ for k in range (500):
     
     predictions = np.append(predictions, prediction)
 
-time = np.linspace(0, 1.5, 1500)
+t = np.linspace(0, 1.5, 1500)
 plt.figure(figsize=(16, 9))
-plt.plot(time[:1000], predictions[:1000], label="Signal", color="purple")  
-plt.plot(time[-500:], predictions[-500:], label="Predictions", color="gold")
+plt.plot(t[:1000], predictions[:1000], label="Signal", color="purple")  
+plt.plot(t[-500:], predictions[-500:], label="Predictions", color="gold")
 plt.title(f"AR Model predictions on 500 consecutive samples\nm = {m}, p = {p}")
 plt.grid()
 plt.tight_layout()
@@ -77,3 +93,50 @@ plt.clf()
 
 
 # d)
+
+min_p, max_p = 10, 125
+min_m, max_m = 20, 205
+pace = 2
+no_tests = 30
+
+P = [p for p in range (min_p, max_p, pace)]
+M = [m for m in range (min_m, max_m, pace)]
+tests_index = np.random.randint((max_p + max_m), 1000, no_tests)
+best_scores = []
+best_predictions = []
+
+for test_index in tests_index:
+    best_score = (100000000, 0, 0)
+    best_prediction = 0
+    for m in M:
+        for p in P:
+            if p >= m:
+                break
+
+            train = signal[:test_index]
+            test = signal[test_index]
+
+            prediction = predict(train, m, p)
+            score = 1 / 2 * (test - prediction) ** 2
+
+            if score < best_score[0]:
+                best_score = (score, m, p)
+                best_prediction = prediction
+
+    best_predictions.append((best_prediction, time[test_index], signal[test_index]))
+    best_scores.append(best_score)
+
+weights = np.array([1 / score for score, _, _ in best_scores])
+best_m = int(sum(m * w for (_, m, _), w in zip(best_scores, weights)) / sum(weights))
+best_p = int(sum(p * w for (_, _, p), w in zip(best_scores, weights)) / sum(weights))
+
+prediction = best_m_p_prediction(signal, best_m, best_p)
+
+plt.figure(figsize=(16, 9))
+plt.plot(time, signal, label = 'signal', color = 'purple') 
+plt.plot(time[best_m + best_p:], prediction, label = 'prediction', color = 'gold')
+plt.title(f"Hyperparameter Tunning for AR Model: m = {best_m}, p = {best_p}")
+plt.grid()
+plt.tight_layout()
+plt.legend()
+plt.savefig('../plots/d_tunning.pdf')
