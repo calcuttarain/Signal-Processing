@@ -8,7 +8,7 @@ for l in range (8):
     for n in range(8):
         fm[l][n] = math.e ** (2 * np.pi * 1j * l * n / 8) * 1 / np.sqrt(8)
 
-fig, axs = plt.subplots(8)
+fig, axs = plt.subplots(8, figsize = (16, 9))
 for n in range(8):
     real = [x.real for x in fm[n]]
     imag = [x.imag for x in fm[n]]

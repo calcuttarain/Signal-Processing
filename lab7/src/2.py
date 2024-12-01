@@ -1,56 +1,45 @@
 from scipy import misc
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.signal import butter, filtfilt
 
 '''
-SNRdB = 10 * log10(PowerSignal / PowerNoise)
-
-PowerS = the mean square of the signal values
+Stabilind un SNR, de fapt consider zgomot frecventele care au o amplitudine mai mica decat SNR.
 '''
 
-def computeSNR(original_signal, filtered_signal):
-    p_signal = np.mean(original_signal ** 2)
-    p_noise = np.mean((original_signal - filtered_signal) ** 2)
+def save_img_spec(X, title, filename):
+    Y = np.fft.fft2(X)
+    freq_db = 20 * np.log10(abs(Y))
 
-    return 10 * np.log10(p_signal / p_noise)
+    fig, axes = plt.subplots(1, 2, figsize=(16, 9))
 
+    axes[0].imshow(X, cmap=plt.cm.gray)
+    axes[0].set_title("Image")
 
-def filter_signal(signal, cutoff, order = 5):
-    nyquist = 0.5 * signal.shape[1]  
-    wn = cutoff / nyquist  
+    im = axes[1].imshow(freq_db, cmap="cividis")
+    axes[1].set_title("Spectrum")
+
+    fig.colorbar(im, ax=axes, orientation='vertical', fraction=0.03, pad=0.04).set_label("Intensity (dB)")
+
+    plt.suptitle(title, fontsize = 15)
+
+    plt.savefig('../plots/' + filename + '.png', dpi=300)
+    plt.savefig('../plots/' + filename + '.pdf')
+    plt.clf()
+
+def compress_image(X, snr):
+    Y = np.fft.fft2(X)
+    freq_db = 20*np.log10(abs(Y))
+
+    Y_cutoff = Y.copy()
+    Y_cutoff[freq_db < snr] = 0
+    X_cutoff = np.fft.ifft2(Y_cutoff)
+    X_cutoff = np.real(X_cutoff)
     
-    b, a = butter(order, wn, btype='low')  
+    save_img_spec(X_cutoff, f'SNR = {snr}', f'2_{snr}')
     
-    filtered_signal = np.zeros_like(signal)
-    for i in range(signal.shape[0]):
-        filtered_signal[i, :] = filtfilt(b, a, signal[i, :])  
-
-    for i in range(signal.shape[1]):
-        filtered_signal[:, i] = filtfilt(b, a, filtered_signal[:, i])
-
-    return filtered_signal
-    
-
 X = misc.face(gray=True)
-SNR = [70, 80, 90, 100]
+save_img_spec(X, 'Imagine originala', 'imagine_originala')
 
-print(np.mean(X**2))
+SNR = [90, 100, 110, 120]
 for snr in SNR:
-    compressed_image_snr = 0 
-    cutoff = 0.2
-
-    while True:
-        compressed_image = filter_signal(X, cutoff)
-        compressed_image_snr = computeSNR(X, compressed_image)
-        
-        if abs(compressed_image_snr - snr) < 0.1:
-            break 
-        elif compressed_image_snr > snr:
-            cutoff -= 0.1
-        else:
-            cutoff += 0.1
-
-        print(abs(compressed_image_snr - snr))
-
-
+    compress_image(X, snr)

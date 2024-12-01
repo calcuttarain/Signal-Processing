@@ -12,7 +12,7 @@ def distance_color(f, ax, x, y):
 
 
 def fig_1(t, s):
-    fig, axs = plt.subplots(2)
+    fig, axs = plt.subplots(2, figsize=(16, 9))
     infasurare = [s[i] * math.e ** (-2 * np.pi * 1j *  i / len(s)) for i in range(len(s))]
     
     distance_color(s, axs[0], t, s)
@@ -39,7 +39,8 @@ def fig_1(t, s):
     plt.savefig('../plots/2_fig1.pdf', format='pdf')
 
 def fig_2(s, omega):
-    fig, axs = plt.subplots(2, 2) 
+    fig, axs = plt.subplots(2, 2, figsize = (16, 9)) 
+
 
     for o, ax in enumerate(axs.flat):
         infasurare = [s[i] * math.e ** (-2 * np.pi * 1j * omega[o] * i / len(s)) for i in range(len(s))]

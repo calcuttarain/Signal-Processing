@@ -6,14 +6,10 @@ def compute_dft(s, t, omega_max = 100):
     dft = [np.sum([s[i] * math.e ** (-2 * np.pi * 1j * i * omega / len(s)) for i in range (len(s))]) for omega in range(omega_max)]
     modul_dft = [np.sqrt(np.real(x) ** 2 + np.imag(x) ** 2) for x in dft]
 
-    fig, axs = plt.subplots(1, 2)
+    fig, axs = plt.subplots(1, 2, figsize = (16, 9))
 
     axs[0].plot(t, s, linewidth=1)
     axs[1].stem(np.arange(100), modul_dft)
-
-    for line in axs[1].lines:
-        line.set_markerfacecolor('none')
-        line.set_markersize(7)
 
     axs[0].grid()
     axs[0].set_ylabel('amplitudine')

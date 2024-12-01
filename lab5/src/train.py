@@ -27,6 +27,7 @@ ft = np.abs(ft / n)
 
 f = fs * np.linspace(0, n / 2, n // 2) / n
 
+plt.figure(figsize=(16, 9))
 plt.stem(f, ft)
 plt.ylabel("|X(ω)|")
 plt.xlabel("frecventa")
@@ -43,6 +44,7 @@ raw_ft = np.fft.fft(raw_s)
 raw_ft = raw_ft[:n // 2]
 raw_ft = np.abs(raw_ft / n)
 
+plt.figure(figsize=(16, 9))
 plt.plot(f, raw_ft)
 plt.title('transformata semnal cu componenta continua')
 plt.xlim(0, 0.002)
@@ -52,6 +54,7 @@ plt.savefig('../plots/e_1.png')
 plt.savefig('../plots/e_1.pdf')
 plt.clf()
 
+plt.figure(figsize=(16, 9))
 plt.plot(f, ft)
 plt.title('transformata semnal fara componenta continua')
 plt.xlim(0, 0.002)
@@ -76,7 +79,7 @@ print(top_4_ft) # [66.85385766 35.21917298 27.10202229 25.21991648] -> cele mai 
 print(top_4_f) # [5.46866455e-05 1.09373291e-04 4.16712239e-02 1.64059937e-04] -> frecventele lor (in ore^(-1))
 print(top_4_f_ore) # [18286.0, 9143.0, 23.997375328083987, 6095.333333333333] -> frecventele lor (in ore)
 
-# 18286 ore ~ 762 zile
+# 18286 ore ~ 762 zile: indica tendinta generala a numarului masinilor de a creste
 # 9143 ~ 380 zile ~ 1 an: pot indica sarbatorile de iarna  
 # 23.99: indica un comportament similar de-a lungul zilei, probabil legat de faptul ca circula mai putine masini noaptea decat ziua
 # 6095.33 ~ 253 zile ~ 8 luni: probabil vacantele scolare de vara au un impact
@@ -89,6 +92,7 @@ timp_luna = np.arange(0, len(luna))
 zile_etichete = np.arange(0, len(luna), 24)  
 zile_saptamana = [str((zi % 7) + 1) for zi in range(len(zile_etichete))] 
 
+plt.figure(figsize=(16, 9))
 plt.plot(timp_luna, luna)
 plt.xticks(ticks=zile_etichete, labels=zile_saptamana)
 plt.title('Plotarea semnalului pe o luna cu etichetele pe zile ale saptamanii')
@@ -110,10 +114,11 @@ In ultima instanta, putem incerca sa observam cresterea numarului de masini pent
 Probabil ca cea mai mare limitare pe care o are aceasta metoda e ca nu se cunoaste exact locul de unde a fost extras semnalul. Asta nu afecteaza atat de mult comportamentul zilnic sau saptamanal, dar devine o problema cand incercam sa facem deduceri pe perioade mai mari care depind de anotimpuri/sarbatori specifice unor anumite zone. 
 '''
 
-# i) nu ma intereseaza un comportament al semnalului pe o perioada mai scurta decat cea zilnica => 
+# i) (probabil o abordare simplista) nu ma intereseaza un comportament al semnalului pe o perioada mai scurta decat cea zilnica => 
 # consider zgomot frecventele mai inalte decat cea pe 24 de ore gasita la subpunctul g) si le elimin
 t = np.arange(0, len(s))
 
+plt.figure(figsize=(16, 9))
 plt.plot(t, s)
 plt.title('Semnalul nefiltrat')
 plt.xlabel('timp(ore)')
@@ -124,19 +129,18 @@ plt.savefig('../plots/semnal_nefiltrat.pdf')
 plt.savefig('../plots/semnal_nefiltrat.png')
 plt.clf()
 
-# index = np.where(f == top_4_f[2])[0][0]
-# ft_filtered = np.copy(ft)
-# ft_filtered[index:] = 0
-#
-# ft_full = np.concatenate((ft_filtered, np.conj(ft_filtered[::-1]))) / n
-# s_filtered = np.fft.ifft(ft_full).real
-# plt.plot(t, s_filtered)
-# plt.title('Semnalul filtrat')
-# plt.xlabel('timp(ore)')
-# plt.ylabel('numar masini')
-# plt.grid()
-# plt.tight_layout()
-# plt.show()
-# plt.savefig('../plots/semnal_nefiltrat.pdf')
-# plt.savefig('../plots/semnal_nefiltrat.png')
-#plt.clf()
+index = np.where(f == top_4_f[2])[0][0]
+ft_filtered = np.copy(ft)
+ft_filtered[index:] = 0
+
+ft_full = np.concatenate((ft_filtered, np.conj(ft_filtered[::-1]))) / n
+s_filtered = np.fft.ifft(ft_full).real
+plt.figure(figsize=(16, 9))
+plt.plot(t[int(len(t) / 2):], s_filtered[int(len(t) / 2):])
+plt.title('Semnalul filtrat')
+plt.xlabel('timp(ore)')
+plt.ylabel('numar masini')
+plt.grid()
+plt.tight_layout()
+plt.savefig('../plots/semnal_filtrat.pdf')
+plt.savefig('../plots/semnal_filtrat.png')

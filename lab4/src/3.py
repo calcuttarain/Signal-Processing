@@ -6,7 +6,7 @@ f = 10
 esantioane = t[::334]
 print(len(esantioane))
 
-fig, axs = plt.subplots(3)
+fig, axs = plt.subplots(3, figsize = (16, 9))
 for i in range (3):
     s = np.sin(2 * np.pi * t * (f + 8 * i))
     s_esan = s[::334]
