@@ -43,7 +43,6 @@ def best_m_p_prediction(signal, m, p):
     return predictions
 
 
-
 # a)
 polinom = {'a': 3, 'b': 5, 'c': 4}
 freq = [12, 18]
