@@ -1,5 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
+from statsmodels.tsa.arima.model import ARIMA
 
 def save_plots(time1, time2, signal1, signal2, label1, label2, title, filename):
     plt.figure(figsize=(16, 9))
@@ -107,10 +109,7 @@ save_plots(time, time, signal, best_alpha_smoothed_signal, 'signal', 'smoothed_s
 
 
 # 3)
-miu = np.mean(signal)
 q = 15
-
-thetas = ma_model(signal, white_noise, q)
 
 predictions = ma_predict(signal, white_noise, q) 
 
@@ -125,3 +124,16 @@ predictions = arma_predict(signal, white_noise, q, p)
 
 save_plots(time, time[q + 1:], signal, predictions, 'signal', 'predictions', f'Autoregressive Moving Average Model Predictions for q = {q}, p = {p}', '4_1')
 
+
+# series = pd.Series(signal)
+#
+# model = ARIMA(series, order = (p, 1, q))
+# model_fit = model.fit()
+#
+# forecast = model_fit.forecast(steps=5)
+# print(f"Prognozele: {forecast}")
+#
+# plt.plot(series, label='Seria originală')
+# plt.plot(range(len(series), len(series) + 5), forecast, label='Prognoze', color='red')
+# plt.legend()
+# plt.show()
