@@ -2,7 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import misc, ndimage
 from scipy.fft import dctn, idctn
+import cv2
 from constants import *
+
 
 # RGB -> YCbCr conversion
 def rgb_to_ycbcr(X_rgb):
@@ -15,12 +17,13 @@ def ycbcr_to_rgb(X_ycbcr):
     rgb_image = np.dot(reshaped_image, YCBCR_TO_RGB.T)
     return rgb_image.reshape(X_ycbcr.shape)
 
-# downsampling
+
+# downsample / upsample
 def block_average(channel, factor):
     h, w = channel.shape
     h_reduced, w_reduced = h // factor, w // factor
     reduced = np.zeros((h_reduced, w_reduced), dtype=np.float32)
-    
+
     for i in range(h_reduced):
         for j in range(w_reduced):
             block = channel[i*factor:(i+1)*factor, j*factor:(j+1)*factor]
@@ -28,8 +31,6 @@ def block_average(channel, factor):
 
     return reduced
 
-
-# downsample / upsample
 def downsample(ycbcr_image, factor = 2):
     Y = ycbcr_image[:, :, 0]
     Cb = ycbcr_image[:, :, 1]
@@ -41,11 +42,9 @@ def downsample(ycbcr_image, factor = 2):
     return Y, Cb_downsampled, Cr_downsampled
 
 def upsample(Y, Cb, Cr, factor):
-    # Upsample Cb and Cr to the original size
     Cb_upsampled = np.zeros((Y.shape[0], Y.shape[1]), dtype=np.float32)
     Cr_upsampled = np.zeros((Y.shape[0], Y.shape[1]), dtype=np.float32)
 
-    # Upsampling Cb and Cr
     for i in range(Cb.shape[0]):
         for j in range(Cb.shape[1]):
             block_value_cb = Cb[i, j]
@@ -53,7 +52,6 @@ def upsample(Y, Cb, Cr, factor):
             Cb_upsampled[i * factor:(i + 1) * factor, j * factor:(j + 1) * factor] = block_value_cb
             Cr_upsampled[i * factor:(i + 1) * factor, j * factor:(j + 1) * factor] = block_value_cr
 
-    # Combine the channels into the final YCbCr image
     ycbcr_image = np.stack([Y, Cb_upsampled, Cr_upsampled], axis=-1)
 
     return ycbcr_image
@@ -86,6 +84,7 @@ def dequantize(channel, Q):
             dequantized_channel[i:i+8, j:j+8] = idct_block
 
     return dequantized_channel
+
 
 # compresion / decompresion
 def compress(image, downsampling_factor = 2, Q_factor = 1):
@@ -148,6 +147,37 @@ def find_best_scaling_factor(image, target_mse, downsampling_factor=2, scale_ran
             high = mid
     
     return best_factor
+
+
+# video
+def process_video(input_video_path, output_video_path, downsampling_factor=2, Q_factor=1):
+    video = cv2.VideoCapture(input_video_path)
+    if not video.isOpened():
+        raise IOError("Error")
+
+    fps = int(video.get(cv2.CAP_PROP_FPS))
+    width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')  
+    out = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
+
+    frame_count = 0
+    while True:
+        ret, frame = video.read()  
+        if not ret:
+            break  
+
+        frame_count += 1
+        print(f"frame_count: {frame_count}...")
+
+        Y, Cb, Cr = compress(frame, downsampling_factor, Q_factor)
+        decompressed_frame = decompress(Y, Cb, Cr, downsampling_factor)
+
+        decompressed_frame_bgr = cv2.cvtColor(decompressed_frame, cv2.COLOR_RGB2BGR)
+        out.write(decompressed_frame_bgr)  
+
+    video.release()
+    out.release()
 
 # save images
 def save_ycbcr_components(ycbcr_image):
@@ -214,11 +244,12 @@ def save_original_vs_decompressed(image, decompressed_image):
     axes[1].set_title("Decompressed Image")
     axes[1].axis("off")
 
-    plt.suptitle("Original Image vs Decompressed Image, MSE = {mse}")
+    plt.suptitle(f"Original Image vs Decompressed Image, MSE = {mse}")
     plt.tight_layout()
     plt.savefig("../images/original_vs_decompressed.png", dpi=300)
 
 
+# cerintele 2 si 3
 image = misc.face()
 ycbr_image = rgb_to_ycbcr(image)
 downsampling_factor = 2
@@ -232,3 +263,9 @@ decompressed_image = decompress(Y, Cb, Cr)
 print(f"MSE: {calculate_mse(image, decompressed_image)}") # MSE: 50.321791330973305
 
 save_original_vs_decompressed(image, decompressed_image)
+
+
+# cerinta 4
+input_video_path = "../videos/input_video.mp4" 
+output_video_path = "../videos/output_video.mp4"
+process_video(input_video_path, output_video_path, downsampling_factor=2, Q_factor=1)
