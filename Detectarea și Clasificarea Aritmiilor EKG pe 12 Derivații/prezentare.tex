@@ -1,0 +1,286 @@
+\documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{enumitem}
+
+\geometry{a4paper, margin=1in}
+
+\begin{document}
+
+\title{\textbf{Algoritmi de Reprezentare Rară, Învățarea Dicționarelor și Reconstrucție Rară: Detectarea și Clasificarea Aritmiilor EKG pe 12 Derivații}}
+\author{Tudor Pistol și Teofil Simiraș}
+\date{\today}
+\maketitle
+
+\tableofcontents
+
+\section{A. TITLU ȘI CUPRINS)}
+
+\textbf{Titlu propus pentru proiect:}\\
+\emph{„Algoritmi de Reprezentare Rară, Învățarea Dicționarelor și Reconstrucție Rară: Detectarea și Clasificarea Aritmiilor EKG pe 12 Derivații”}
+
+\textbf{Cuprins (planificat pentru prezentare):}
+\begin{enumerate}
+    \item Introducere și Context
+    \item Problema Abordată
+    \item Justificarea Problemei
+    \item Abordare Tehnică Propusă
+    \item Tehnologii și Biblioteci Folosite
+    \item Rezultate Așteptate și Metodologie de Evaluare
+    \item Concluzii și Direcții Potențiale de Extindere
+\end{enumerate}
+
+\section{B. PROBLEMA ABORDATĂ ÎN PROIECT}
+
+În cadrul acestui proiect, \textbf{intenționăm să detectăm și să clasificăm aritmiile cardiace} (cum ar fi fibrilația atrială, extrasistole etc.) în semnalele EKG cu \textbf{12 derivații}. Se știe că:
+
+\begin{itemize}
+    \item Datele EKG de 12 derivații oferă o imagine foarte completă a activității electrice a inimii, dar sunt și mai voluminoase.
+    \item Analiza clasică necesită implicarea intensivă a specialiștilor (cardiologi), iar variabilitatea umană poate duce la erori.
+\end{itemize}
+
+\textbf{Obiectiv principal}: Să dezvoltăm (în următoarea perioadă) un \emph{pipeline automat} care, după preprocesarea și segmentarea bătăilor cardiace, să aplice \textbf{Reprezentarea Rară (Sparse Coding)} pentru extragerea de caracteristici și apoi să folosească un \textbf{clasificator} (SVM, Logistic Regression etc.) pentru a identifica automat bătăile normale față de cele care prezintă aritmii cardiace.
+
+\section{C. JUSTIFICAREA PROBLEMEI ABORDATE}
+
+\subsection*{1. De ce e importantă?}
+\begin{itemize}
+    \item Aritmiile cardiace sunt frecvente și pot fi critice dacă nu sunt depistate la timp.
+    \item Un sistem semi-automat sau automat pentru detecția aritmiilor cardiace reduce timpul de diagnostic și crește acuratețea.
+\end{itemize}
+
+\subsection*{2. Context și ce problemă rezolvă?}
+\begin{itemize}
+    \item În spitale se adună zilnic sute/mii de EKG-uri. Un algoritm robust ajută la trierea rapidă a pacienților care au nevoie de investigații suplimentare.
+    \item În dispozitive portabile (Holter EKG, wearables), un algoritm cu cost computațional relativ scăzut poate alerta medicul sau pacientul în timp real.
+\end{itemize}
+
+\subsection*{3. Unde poate fi folosit?}
+\begin{itemize}
+    \item Clinici, centre de cardiologie, laboratoare de cercetare care lucrează cu analiza semnalelor cardiace.
+    \item În aplicații de telemedicină și monitorizare la distanță (conectate la cloud).
+\end{itemize}
+
+\section{D. CUM ESTE ABORDATĂ PROBLEMA TEHNIC (DESCRIERE MATEMATICĂ, PLAN DE IMPLEMENTARE)}
+
+În această secțiune, descriem \textbf{modul în care vom implementa} proiectul, pas cu pas, fără a intra (încă) în toate detaliile codului, ci arătând \emph{ce urmează să facem} tehnic.
+
+\subsection*{1. Colectarea Datelor și Structurarea lor}
+\begin{itemize}
+    \item \textbf{Set de date}: Planificăm să utilizăm \emph{A large scale 12-lead electrocardiogram database for arrhythmia study}, care conține o varietate de înregistrări EKG pe 12 derivații, cu adnotări pentru diferite tipuri de aritmii cardiace.
+    \item Vom organiza datele în \emph{fișiere} (.mat, .csv) astfel încât fiecare fișier să conțină un EKG pe 12 derivații și eventual etichete la nivel de bătăi cardiace (normal/aritmie).
+\end{itemize}
+
+\subsection*{2. Preprocesare (Filtrare, Normalizare, Segmentare)}
+\begin{enumerate}[label=(\alph*)]
+    \item \textbf{Filtrare}:
+    \begin{itemize}
+        \item Aplicăm un filtru band-pass (0.5 -- 40 Hz) pentru a reține componentele relevante din EKG.
+        \item Eliminăm bruiajul de rețea (50/60 Hz) cu un filtru notch.
+        \item Stabilim o metodă de înlăturare a baseline wander (ex. high-pass la 0.5 Hz sau spline interpolation).
+    \end{itemize}
+
+    \item \textbf{Normalizare}:
+    \begin{itemize}
+        \item Vom normaliza fiecare derivată la intervalul [-1, 1], pentru a asigura consistența amplitudinii între pacienți diferiți.
+    \end{itemize}
+
+    \item \textbf{Segmentare pe bătăi cardiace}:
+    \begin{itemize}
+        \item Folosim un algoritm de detecție QRS (Pan-Tompkins sau alt detectator) pentru a identifica peak-urile R.
+        \item Extragem segmente tip (ex. 100 ms înainte + 300 ms după R-peak).
+        \item Rezultatul: o colecție de bătăi cardiace ($\mathbf{x}_i$) de aceeași lungime $L$, pentru fiecare dintre cele 12 derivații.
+    \end{itemize}
+\end{enumerate}
+
+\subsection*{3. Reprezentarea Rară (Sparse Coding) -- Plan de Implementare}
+
+\begin{itemize}
+    \item \textbf{Veci flatten vs. patch-uri}:
+    \begin{itemize}
+        \item Cel mai simplu mod: aplatizăm (flatten) fiecare bătaie (12 derivații $\times$ L eșantioane) într-un vector $\mathbf{x} \in \mathbb{R}^{12 \cdot L}$.
+        \item În viitor, putem extinde cu patch-uri 2D sau sub-patch-uri temporale.
+    \end{itemize}
+
+    \item \textbf{Dictionary Learning (ex. K-SVD sau Online)}:
+    \begin{itemize}
+        \item Vom antrena un dicționar $\mathbf{D}$ de dimensiune $(d \times K)$, unde $d = 12 \cdot L$, iar $K$ este numărul de “atomi”.
+        \item Metode posibile:
+        \begin{itemize}
+            \item \textbf{K-SVD} (classică, implementare în scikit-learn/ SPAMS).
+            \item \textbf{Online Dictionary Learning} (mai rapid, util când avem multe date).
+        \end{itemize}
+        \item Vom decide un \textbf{nivel de raritate} (ex. $s$ = 10--20 atomi nenuli la reconstrucție) sau vom folosi o penalizare L1 ($\lambda \|\boldsymbol{\alpha}\|_1$).
+    \end{itemize}
+
+    \item \textbf{Extragerea coeficienților}:
+    \begin{itemize}
+        \item Fiecare nouă bătaie cardiacă este reprezentată sub forma unui vector de coeficienți rari $\boldsymbol{\alpha}_i$.
+        \item Acești coeficienți devin \emph{feature}-urile de intrare în clasificator.
+    \end{itemize}
+\end{itemize}
+
+\subsection*{4. Clasificare -- Diferite Căi pe care le Vom Explora}
+
+\begin{enumerate}[label=(\arabic*)]
+    \item \textbf{SVM (kernel RBF sau liniar)}:
+    \begin{itemize}
+        \item Este robust la date cu dimensiuni medii.
+        \item Vom încerca inițial RBF (care prinde relații nelineare) și vom face grid search pentru parametrii $C$ și $\gamma$.
+    \end{itemize}
+
+    \item \textbf{Regresie Logistică}:
+    \begin{itemize}
+        \item Metodă simplă, interpretabilă, utilă pentru a vedea rapid dacă vectorii de coeficienți au putere de discriminare.
+        \item Timp de antrenare redus, face debugging mai ușor.
+    \end{itemize}
+
+    \item \textbf{Random Forest sau XGBoost}:
+    \begin{itemize}
+        \item Metode de tip ensemble, pot fi eficiente în clasificarea aritmiilor cardiace.
+        \item Vor fi testate pentru a vedea dacă oferă un plus de acuratețe sau stabilitate.
+    \end{itemize}
+
+    \item \textbf{Abordare bazată pe Rețele Neurale (opțional / extensie)}:
+    \begin{itemize}
+        \item Dacă timpul permite, vom explora o arhitectură MLP (Fully-Connected) care primește ca input tot vectorul de coeficienți rari.
+        \item Avantaj: poate capta interacțiuni nelineare mai subtile între coeficienți.
+    \end{itemize}
+\end{enumerate}
+
+\subsection*{5. Metodologie de Testare}
+
+\begin{itemize}
+    \item Vom separa datele în \emph{train-validation-test} (ex. 70\%--15\%--15\%).
+    \item Vom calcula metrici precum: \textbf{Acuratețe}, \textbf{Sensibilitate (Recall)}, \textbf{Specificitate}, \textbf{F1-score}, \textbf{ROC/AUC}.
+    \item Vom face experimente cu diverși hiperparametri (dimensiune dicționar, nivel de raritate, parametri de clasificare etc.) și vom documenta parametrii care dau cele mai bune rezultate.
+\end{itemize}
+
+\section{E. TEHNOLOGIILE FOLOSITE}
+
+\begin{enumerate}[label=(\arabic*)]
+    \item \textbf{Python}
+    \begin{itemize}
+        \item Deja un standard în cercetare și dezvoltare rapidă.
+    \end{itemize}
+
+    \item \textbf{Biblioteci de bază}
+    \begin{itemize}
+        \item \textbf{NumPy, SciPy}: pentru calcule matriciale, funcții de filtrare semnal.
+        \item \textbf{matplotlib / seaborn}: vizualizarea semnalelor EKG pre și post-filtrare, graficarea metricilor de clasificare.
+    \end{itemize}
+
+    \item \textbf{Biblioteci pentru Sparse Coding și Dictionary Learning}
+    \begin{itemize}
+        \item \textbf{scikit-learn} (\texttt{DictionaryLearning}, \texttt{SparseCoder}) -- ușor de integrat, are implementări decente.
+        \item (Opțional) \textbf{SPAMS} -- pachet specializat pe K-SVD, Lasso, OMP, dacă avem nevoie de performanțe superioare.
+        \item \textbf{PyTorch / TensorFlow} (opțional, dacă abordăm rețele neurale, sau un autoencoder sparse).
+    \end{itemize}
+
+    \item \textbf{Clasificare}
+    \begin{itemize}
+        \item \texttt{sklearn.svm} (SVC) pentru SVM,
+        \item \texttt{sklearn.linear\_model} (LogisticRegression),
+        \item \texttt{sklearn.ensemble} (RandomForestClassifier),
+        \item \texttt{xgboost} (dacă testăm XGBoost).
+    \end{itemize}
+\end{enumerate}
+
+\textbf{De ce folosim aceste tehnologii?}
+\begin{itemize}
+    \item Ecosistemul Python + scikit-learn ne oferă implementări rapide pentru experimente multiple (SVM, RF, LR).
+    \item SPAMS sau implementările custom K-SVD sunt mai specializate, pot fi testate dacă avem timp/ nevoie de performanță ridicată.
+    \item Matplotlib/Seaborn sunt esențiale pentru a arăta clar evoluția procesării semnalelor, distribuția coeficienților, curbe ROC etc.
+\end{itemize}
+
+\section{F. REZULTATE AȘTEPTATE ȘI METODOLOGIE DE EVALUARE}
+
+\textbf{Cum plănuim să ne evaluăm rezultatele?}
+
+\subsection*{1. Scenariu de Antrenare/Test}
+\begin{itemize}
+    \item Vom împărți datele în “bătăi normale” și “bătăi cu aritmii cardiace” (posibil grupate pe tipuri de aritmii).
+    \item Pe setul de test, vom rula clasificatorul și vom nota cât de des bătăile cu aritmii sunt recunoscute corect (sensibilitate) și cât de des bătăile normale sunt clasificate corect (specificitate).
+\end{itemize}
+
+\subsection*{2. Metrici}
+\begin{itemize}
+    \item \textbf{Acuratețe}
+    \item \textbf{Sensibilitate (Recall)} și \textbf{Precizie (Precision)}
+    \item \textbf{F1-score}
+    \item \textbf{ROC/AUC}
+\end{itemize}
+
+\subsection*{3. Rezultate așteptate}
+\begin{itemize}
+    \item Un salt față de metoda de bază (features brute) -- ne dorim o acuratețe de peste 90\%.
+    \item O îmbunătățire a sensibilității în detectarea aritmiilor cardiace (unde e critic să nu ratăm cazurile patologice).
+    \item Demonstrarea că reprezentarea rară aduce un plus (prin compararea cu scenariul “fără sparse coding”).
+\end{itemize}
+
+\subsection*{4. Plan de Documentare}
+\begin{itemize}
+    \item Vom prezenta (în raport final și în repo GitHub) grafice cu learning curves, confusion matrix, ROC curves etc.
+    \item Vom detalia parametrii folosiți (dimensiunea dicționarului, numărul de iterații, tip de clasificator etc.) și modul în care au influențat performanța.
+\end{itemize}
+
+\section{G. CONCLUZII ȘI DIRECȚII POTENȚIALE DE EXTINDERE}
+
+\subsection*{1. Concluzia Principală (ce dorim să demonstrăm)}
+\begin{itemize}
+    \item Reprezentarea rară (Sparse Coding) poate fi un mod eficient de a extrage feature-uri reprezentative dintr-un semnal EKG complex de 12 derivații, ducând la o clasificare mai robustă a bătăilor cardiace și la detecția aritmiilor cardiace.
+\end{itemize}
+
+\subsection*{2. Posibile Extensii / Căi pe care am putea merge ulterior}
+\begin{itemize}
+    \item Abordare multi-clasă (detectarea specifică a tipurilor de aritmii: fibrilație atrială, flutter, SVT etc.).
+    \item Incorporarea altor tipuri de semnale fiziologice (ex. PPG, BP) într-o metodă multimodală.
+    \item Sparse Autoencoder: în loc de K-SVD, am putea folosi o rețea neuronală cu constrângeri de raritate (L1) la nivelul straturilor ascunse.
+    \item Transfer Learning: dacă avem un dicționar antrenat pe un set mare, îl putem aplica pe alt set nou cu efort minim.
+    \item Implementare Embedded (pe un dispozitiv wearable sau Holter) pentru detecție în timp real.
+    \item Îmbunătățirea preprocesării: teste cu diverse algoritmi de filtrare adaptivă, wavelet filtering etc.
+    \item Explorarea altor modele: SVM cu kernel polinomial, rețele neurale cu LSTM (pentru secvențe), modele tip Transformer specializate pentru semnale EKG.
+\end{itemize}
+
+\subsection*{3. Beneficiile Proiectului}
+\begin{itemize}
+    \item Are un \textbf{impact practic} (potențial medical).
+    \item Oferă \textbf{flexibilitate}: se pot testa mai multe variante de dicționare și clasificatori.
+    \item Deschide \textbf{noi direcții de cercetare} și permite integrarea altor tehnologii (deep learning, big data etc.).
+\end{itemize}
+
+\section*{Mențiuni Finale}
+
+\begin{itemize}
+    \item \textbf{Proiectul este în fază inițială}: vom prezenta planul de implementare (ce am descris mai sus) și motivația.
+    \item \textbf{Codul sursă} va fi structurat în scripturi separate pentru preprocesare, antrenare dicționar, extragere coeficienți, clasificare și evaluare.
+    \item \textbf{Repo GitHub}: va conține tot codul și rezultatele intermediare (ploturi, fișiere JSON cu parametri etc.) pentru transparență.
+    \item Pe parcurs, vom documenta toate încercările, inclusiv eșecurile sau abordările care nu dau rezultate bune, pentru a arăta clar procesul de învățare.
+\end{itemize}
+
+\section*{Rezumat Final -- Ce Urmează Să Facem}
+
+\begin{enumerate}[label=(\arabic*)]
+    \item \textbf{Colectăm și preprocesăm semnalele EKG de 12 derivații}: filtru band-pass, eliminare baseline, segmentare bătăi.
+    \item \textbf{Antrenăm un dicționar (K-SVD sau Online) pentru Sparse Coding}: obținem o matrice $\mathbf{D}$.
+    \item \textbf{Fiecare bătaie cardiacă} (aplatizată) este reprezentată de un vector de coeficienți rari $\boldsymbol{\alpha}$.
+    \item \textbf{Testăm mai multe clasificatoare} (SVM, Logistic Regression, RandomForest, eventual MLP) pentru a compara performanța.
+    \item \textbf{Evaluăm} pe un set de test, calculăm metrici (acuratețe, recall, specificity, F1-score).
+    \item \textbf{Comparăm} cu metode fără Sparse Coding și cu parametri diferiți.
+    \item \textbf{Tragem concluzii} și \textbf{indicăm direcții viitoare} (extensii, îmbunătățiri).
+\end{enumerate}
+
+Prin acest proiect, ne propunem să demonstrăm că \textbf{reprezentarea rară} poate oferi un plus de acuratețe și robusteză în \textbf{detecția automată} a aritmiilor cardiace EKG pe 12 derivații, contribuind astfel la dezvoltarea de instrumente de analiză cardiacă mai eficiente.
+
+\section*{Bibliografie}
+\begin{itemize}
+    \item \textbf{[1]} \emph{A large scale 12-lead electrocardiogram database for arrhythmia study}, \url{https://physionet.org/content/ecg-arrhythmia/1.0.0/}
+\end{itemize}
+
+\end{document}
+
