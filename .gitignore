@@ -1,3 +1,25 @@
+# LaTeX
+*.aux
+*.bbl
+*.blg
+*.brf
+*.idx
+*.ilg
+*.ind
+*.lof
+*.log
+*.lot
+*.nav
+*.out
+*.snm
+*.synctex.gz
+*.toc
+*.fdb_latexmk
+*.fls
+
+# Python
+__pycache__/
+
+# macOS
 .DS_Store
 
-__pycache__/
