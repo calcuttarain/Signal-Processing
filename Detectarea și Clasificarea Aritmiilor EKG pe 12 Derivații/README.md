@@ -7,7 +7,7 @@ This project focuses on detecting and classifying cardiac arrhythmias in 12-lead
 ### Key Features:
 - **Signal Preprocessing:** Filtering and segmentation of EKG signals to extract relevant cardiac beats.
 - **Sparse Representation:** Utilizing algorithms like Orthogonal Matching Pursuit (OMP) and K-SVD for feature extraction.
-- **Machine Learning Classification:** Employing models such as SVM or logistic regression to classify arrhythmic beats.
+- **Machine Learning Classification:** Employing models such as ERT
 - **Extensibility:** The pipeline can be adapted for other signal processing tasks such as noise reduction, inpainting, or multi-class arrhythmia classification.
 
 ---
@@ -99,4 +99,3 @@ https://github.com/zheng120/ECGDenoisingTool
 
 - Exemplu date fara zgomot
   https://figshare.com/collections/ChapmanECG/4560497/2
-
